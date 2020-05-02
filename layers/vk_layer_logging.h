@@ -634,16 +634,53 @@ static inline bool LogMsgLocked(const debug_report_data *debug_data, VkFlags msg
         // this point in the error reporting path
         uint32_t num_vuids = sizeof(vuid_spec_text) / sizeof(vuid_spec_text_pair);
         const char *spec_text = nullptr;
+        std::string spec_type;
         for (uint32_t i = 0; i < num_vuids; i++) {
             if (0 == strcmp(vuid_text.c_str(), vuid_spec_text[i].vuid)) {
                 spec_text = vuid_spec_text[i].spec_text;
+                spec_type = vuid_spec_text[i].url_id;
                 break;
             }
         }
 
+        // Construct and append the specification text and link to the appropriate version of the spec
         if (nullptr != spec_text) {
-            str_plus_spec_text += " The Vulkan spec states: ";
-            str_plus_spec_text += spec_text;
+#ifdef ANNOTATED_SPEC_LINK
+#define SSTRINGIFY(s) SSTRINGIFY_HELPER(s)
+#define SSTRINGIFY_HELPER(s) #s
+            std::string spec_link = SSTRINGIFY(ANNOTATED_SPEC_LINK);
+            // Remove quotation marks, if present
+            spec_link.erase(std::remove(spec_link.begin(), spec_link.end(), '"'), spec_link.end());
+#else
+            std::string spec_link = " (https://www.khronos.org/registry/vulkan/specs/_MAGIC_KHRONOS_SPEC_TYPE_/html/vkspec.html)";
+#endif
+            static std::string kAtToken = "_MAGIC_ANNOTATED_SPEC_TYPE_";
+            static std::string kKtToken = "_MAGIC_KHRONOS_SPEC_TYPE_";
+            static std::string kVeToken = "_MAGIC_VERSION_ID_";
+            auto Replace = [](std::string &dest_string, const std::string &to_replace, const std::string &replace_with) {
+                if (dest_string.find(to_replace) != std::string::npos) {
+                    dest_string.replace(dest_string.find(to_replace), to_replace.size(), replace_with);
+                }
+            };
+
+            str_plus_spec_text.append(" The Vulkan spec states: ");
+            str_plus_spec_text.append(spec_text);
+            if (0 == spec_type.compare("default")) {
+                str_plus_spec_text.append(" (https://github.com/KhronosGroup/Vulkan-Docs/search?q=)");
+            } else {
+                str_plus_spec_text.append(" ");
+                str_plus_spec_text.append(spec_link);
+                std::string major_version = std::to_string(VK_VERSION_MAJOR(VK_HEADER_VERSION_COMPLETE));
+                std::string minor_version = std::to_string(VK_VERSION_MINOR(VK_HEADER_VERSION_COMPLETE));
+                std::string patch_version = std::to_string(VK_VERSION_PATCH(VK_HEADER_VERSION_COMPLETE));
+                std::string header_version = major_version + "." + minor_version + "." + patch_version;
+                std::string annotated_spec_type = major_version + "." + minor_version + "-extensions";
+                Replace(str_plus_spec_text, kKtToken, spec_type);
+                Replace(str_plus_spec_text, kAtToken, annotated_spec_type);
+                Replace(str_plus_spec_text, kVeToken, header_version);
+                str_plus_spec_text.append("#");  // CMake hates hashes
+            }
+            str_plus_spec_text.append(vuid_text);
         }
     }
 
