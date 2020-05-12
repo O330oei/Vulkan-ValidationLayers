@@ -44,7 +44,6 @@ namespace {
         if (initialized()) destroy_func(device(), handle(), NULL); \
     }
 
-#define STRINGIFY(x) #x
 #define EXPECT(expr) ((expr) ? true : expect_failure(STRINGIFY(expr), __FILE__, __LINE__, __FUNCTION__))
 
 vk_testing::ErrorCallback error_callback;

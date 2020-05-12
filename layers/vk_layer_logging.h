@@ -72,6 +72,11 @@
     }
 #endif
 
+#ifndef STRINGIFY
+#define STRINGIFY(s) STRINGIFY_HELPER(s)
+#define STRINGIFY_HELPER(s) #s
+#endif
+
 static const char DECORATE_UNUSED *kVUIDUndefined = "VUID_Undefined";
 
 #undef DECORATE_UNUSED
@@ -646,9 +651,7 @@ static inline bool LogMsgLocked(const debug_report_data *debug_data, VkFlags msg
         // Construct and append the specification text and link to the appropriate version of the spec
         if (nullptr != spec_text) {
 #ifdef ANNOTATED_SPEC_LINK
-#define SSTRINGIFY(s) SSTRINGIFY_HELPER(s)
-#define SSTRINGIFY_HELPER(s) #s
-            std::string spec_link = SSTRINGIFY(ANNOTATED_SPEC_LINK);
+            std::string spec_link = STRINGIFY(ANNOTATED_SPEC_LINK);
             // Remove quotation marks, if present
             spec_link.erase(std::remove(spec_link.begin(), spec_link.end(), '"'), spec_link.end());
 #else
